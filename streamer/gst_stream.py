@@ -80,7 +80,11 @@ class GstNDIStream:
             )
             logger.info("[%s] viewfinder enabled (HyperPixel detected)", self.ndi_name)
         else:
-            pipeline = f"{src}videoconvert ! video/x-raw,format=UYVY ! {ndi_branch[len('queue leaky=downstream ! '):]}"
+            pipeline = (
+                f"{src}"
+                f"videoconvert ! video/x-raw,format=UYVY ! "
+                f"appsink name=sink emit-signals=true max-buffers=2 drop=true sync=false"
+            )
             logger.info("[%s] no display detected — NDI only", self.ndi_name)
 
         return pipeline
