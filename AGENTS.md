@@ -67,9 +67,21 @@
   ことを基本構成とする(ファンネル運用)。
 - Raspberry Pi 4(顕微鏡用途)は別件であり、本プロジェクトの対象外。
 
+## ネットワーク方針
+
+**「電源とカメラだけで動く」を最低保証。有線はボーナス。**
+
+- Wi-Fi(wlan0)が基本動作環境。Wi-Fiのみでも1080p30 NDI 1カメラは動作する想定。
+- 有線Ethernet(eth0)を検出した場合は自動的に有線に切り替えて優先使用する。
+- 超高画質・多カメラ同時送出時は有線推奨だが、強制はしない。
+- エージェントは「有線未接続」を問題として報告したり修正を促したりしない。
+  Wi-Fi動作は正常運用であり、有線はオプション拡張として扱う。
+
 ## 技術スタック(現時点での有力仮説、変更の可能性あり)
 
-- カメラ→NDI: V4L2-to-NDI (https://github.com/lplassman/V4L2-to-NDI)
+- カメラ→NDI: GStreamer (MJPG→UYVY→NDI SDK ctypes) + streamer/ Pythonパッケージ
+  - `python3 -m streamer` で起動
+  - v4l2ndi (https://github.com/lplassman/V4L2-to-NDI) はYUYV専用の旧実装として保持
 - 操作パネル(HyperPixel 4.0, 800x480@60fps, タッチ非搭載): LVGL(C、SquareLine Studio等の
   プロプライエタリツールは使わない。デザインはFigma→コード変換のフローを試す)
 - ソース/スタジオモニター(HDMI x2): mpv等での別プロセスNDI表示を想定

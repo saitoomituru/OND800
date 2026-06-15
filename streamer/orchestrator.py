@@ -14,7 +14,8 @@ import time
 import pyudev
 
 from .camera import Camera, discover_cameras
-from .stream import StreamProcess
+from .gst_stream import GstNDIStream
+from .ndi_send import initialize as ndi_initialize
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,8 @@ def _ndi_name(camera: Camera) -> str:
 
 class Orchestrator:
     def __init__(self):
-        self._streams: dict[str, StreamProcess] = {}  # device -> StreamProcess
+        ndi_initialize()
+        self._streams: dict[str, GstNDIStream] = {}  # device -> GstNDIStream
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
 
@@ -41,7 +43,7 @@ class Orchestrator:
 
         name = _ndi_name(camera)
         logger.info("Starting NDI stream: %s  [%s]", name, fmt)
-        sp = StreamProcess(camera, fmt, name)
+        sp = GstNDIStream(camera, fmt, name)
         sp.start()
         with self._lock:
             self._streams[camera.device] = sp
