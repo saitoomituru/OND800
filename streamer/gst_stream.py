@@ -1,15 +1,17 @@
 """
-GStreamer-based NDI sender for OND800.
+GStreamer-based NDI sender + viewfinder for OND800.
 
-Pipeline: v4l2src (MJPG) → jpegdec → videoconvert → UYVY → appsink → NDI SDK
+Pipeline (NDI only):
+  v4l2src (MJPG) → jpegdec → videoconvert → UYVY → appsink → NDI SDK
 
-This replaces the v4l2ndi binary for cameras where MJPG is available,
-enabling 1920x1080@30fps NDI output over standard NDI (UYVY on the wire).
+Pipeline (NDI + HyperPixel viewfinder):
+  v4l2src (MJPG) → jpegdec → tee
+    ├─ queue → videoconvert → videoscale → 800x480 → kmssink   (viewfinder)
+    └─ queue → videoconvert → UYVY → appsink → NDI SDK         (NDI out)
 """
 
 import logging
 import threading
-import time
 from typing import Optional
 
 import gi
@@ -18,7 +20,8 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gst, GLib
 
 from .camera import Camera, Format
-from .ndi_send import NDISender, initialize as ndi_initialize
+from .display import ViewfinderDisplay, display_available
+from .ndi_send import NDISender
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ Gst.init(None)
 class GstNDIStream:
     """
     Captures from a UVC camera via GStreamer and sends frames over NDI.
-    Supports MJPG (decoded to UYVY) and YUYV (converted to UYVY).
+    If a HyperPixel display is detected, also renders a 800x480 viewfinder.
     """
 
     def __init__(self, camera: Camera, fmt: Format, ndi_name: str):
@@ -43,30 +46,44 @@ class GstNDIStream:
         self._stop_event = threading.Event()
         self._frame_count = 0
         self._drop_count = 0
+        self._has_display = display_available()
+
+    def _src_caps(self) -> str:
+        w, h, fps = self.fmt.width, self.fmt.height, int(self.fmt.fps)
+        if self.fmt.pixelformat == "MJPG":
+            return f"image/jpeg,width={w},height={h},framerate={fps}/1"
+        return f"video/x-raw,format=YUY2,width={w},height={h},framerate={fps}/1"
+
+    def _decode_element(self) -> str:
+        if self.fmt.pixelformat == "MJPG":
+            return "jpegdec ! "
+        return ""  # YUYV needs no decode, just conversion
 
     def _build_pipeline_str(self) -> str:
-        w, h = self.fmt.width, self.fmt.height
-        fps = int(self.fmt.fps)
         dev = self.camera.device
+        src = f"v4l2src device={dev} ! {self._src_caps()} ! {self._decode_element()}"
 
-        if self.fmt.pixelformat == "MJPG":
-            return (
-                f"v4l2src device={dev} ! "
-                f"image/jpeg,width={w},height={h},framerate={fps}/1 ! "
-                f"jpegdec ! "
-                f"videoconvert ! "
-                f"video/x-raw,format=UYVY,width={w},height={h} ! "
-                f"appsink name=sink emit-signals=true max-buffers=2 drop=true sync=false"
+        ndi_branch = (
+            "queue leaky=downstream ! "
+            f"videoconvert ! video/x-raw,format=UYVY ! "
+            "appsink name=sink emit-signals=true max-buffers=2 drop=true sync=false"
+        )
+
+        if self._has_display:
+            vf = ViewfinderDisplay()
+            display_branch = vf.build_display_branch()
+            pipeline = (
+                f"{src}"
+                f"tee name=t "
+                f"t. ! {ndi_branch} "
+                f"t. ! {display_branch}"
             )
+            logger.info("[%s] viewfinder enabled (HyperPixel detected)", self.ndi_name)
         else:
-            # YUYV → UYVY conversion
-            return (
-                f"v4l2src device={dev} ! "
-                f"video/x-raw,format=YUY2,width={w},height={h},framerate={fps}/1 ! "
-                f"videoconvert ! "
-                f"video/x-raw,format=UYVY,width={w},height={h} ! "
-                f"appsink name=sink emit-signals=true max-buffers=2 drop=true sync=false"
-            )
+            pipeline = f"{src}videoconvert ! video/x-raw,format=UYVY ! {ndi_branch[len('queue leaky=downstream ! '):]}"
+            logger.info("[%s] no display detected — NDI only", self.ndi_name)
+
+        return pipeline
 
     def _on_new_sample(self, appsink):
         sample = appsink.emit("pull-sample")
@@ -136,7 +153,9 @@ class GstNDIStream:
 
     def start(self):
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True, name=f"gst-{self.ndi_name}")
+        self._thread = threading.Thread(
+            target=self._run, daemon=True, name=f"gst-{self.ndi_name}"
+        )
         self._thread.start()
 
     def stop(self):
