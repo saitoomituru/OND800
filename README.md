@@ -32,10 +32,15 @@ OND800は、演者本人が**演じながらでもソロで手軽にマルチカ
 - 各ユニットは「送信専用ノード」「スイッチャー」「両方」のいずれにもなれる、対称的な設計を目指す。
 - ハードウェア統合(筐体一体型OSH)は優先度低。ソフト(統合GUI)の再利用性・改変性を優先する。
 
-## Season 1 目標
+## Season 1 目標 — **達成済み (2026-06-15)**
 
 認識可能なカメラデバイス(USB Webカム等)を、Pi上で**最大性能でNDI公開する**ことをまず確立する。
 ここを土台として、以降は実機テストしながらアジャイルに機能を積んでいく。
+
+**達成構成**: C922 Pro Stream Webcam → MJPG 1920x1080@30fps → NDI SDK v6 (ctypes) → OBS  
+**測定結果**: frames=300 drops=0, CPU ~1.3コア/4コア, 温度 51.8°C (Wi-Fi環境)  
+**自動起動**: systemd `ond800-streamer.service` でブート時自動起動済み  
+詳細は [`notes/2026-06-15_season1-complete.md`](notes/2026-06-15_season1-complete.md) 参照。
 
 ### NDIストリーミング方針 (デフォルト設定基準)
 
@@ -115,3 +120,23 @@ OND800は、演者本人が**演じながらでもソロで手軽にマルチカ
   (誤検知リスクが高いため、初期はアラート表示のみから)
 
 詳細は `/AGENTS.md` および各サブディレクトリの `AGENTS.md` を参照。
+
+## クイックスタート (新規Pi5セットアップ)
+
+```bash
+# 1. リポジトリをクローン
+git clone git@github.com:saitoomituru/OND800.git
+cd OND800
+
+# 2. NDI SDK .deb を ~/ndi-sdk.deb に配置してからセットアップ実行
+bash scripts/setup.sh
+
+# 3. 手動動作確認
+python3 -m streamer
+
+# 4. 自動起動の確認 (setup.sh が enable 済み)
+sudo systemctl status ond800-streamer
+journalctl -u ond800-streamer -f
+```
+
+詳細は [`docs/autostart.md`](docs/autostart.md) 参照。
