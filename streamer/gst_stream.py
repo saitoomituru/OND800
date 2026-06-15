@@ -72,8 +72,11 @@ class GstNDIStream:
         if self._has_display:
             vf = ViewfinderDisplay()
             display_branch = vf.build_display_branch()
+            # Explicitly convert to I420 before tee so both branches
+            # can independently re-convert to their required format.
             pipeline = (
                 f"{src}"
+                f"videoconvert ! video/x-raw,format=I420 ! "
                 f"tee name=t "
                 f"t. ! {ndi_branch} "
                 f"t. ! {display_branch}"

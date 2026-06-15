@@ -19,9 +19,11 @@ from gi.repository import Gst, GLib
 
 logger = logging.getLogger(__name__)
 
-HYPERPIXEL_WIDTH  = 800
-HYPERPIXEL_HEIGHT = 480
-HYPERPIXEL_FPS    = 60
+# Physical framebuffer is portrait (480x800, 32bpp BGRx).
+# We rotate the video 90° clockwise so landscape camera feed fills the screen.
+HYPERPIXEL_FB_WIDTH  = 480
+HYPERPIXEL_FB_HEIGHT = 800
+HYPERPIXEL_FPS       = 30   # match camera fps; fb can do 60 but source is 30
 
 # DRM connector names Pimoroni HyperPixel 4.0 shows up as on Pi5
 _HYPERPIXEL_CONNECTOR_HINTS = ("DPI", "dpi", "hyperpixel")
@@ -65,11 +67,13 @@ class ViewfinderDisplay:
     """
 
     # GStreamer display sink preference order for Pi5/HyperPixel
+    # fbdevsink first: vc4-kms-dpi driver exposes /dev/fb0 and kmssink
+    # force-modesetting fails without a full KMS compositor running.
     _SINK_CANDIDATES = [
-        "kmssink",       # DRM/KMS — best for HyperPixel DPI, no desktop needed
-        "fbdevsink",     # raw framebuffer fallback
+        "fbdevsink",     # raw framebuffer — works directly with /dev/fb0 on DPI
+        "kmssink",       # DRM/KMS (needs compositor or atomic modesetting support)
         "waylandsink",   # if Wayland compositor is running
-        "autovideosink", # last resort (may open a window on HDMI)
+        "autovideosink", # last resort
     ]
 
     def __init__(self):
@@ -101,11 +105,24 @@ class ViewfinderDisplay:
         elif sink == "fbdevsink":
             sink_props = " device=/dev/fb0"
 
-        return (
-            f"queue leaky=downstream ! "
-            f"videoconvert ! "
-            f"videoscale ! "
-            f"video/x-raw,width={HYPERPIXEL_WIDTH},height={HYPERPIXEL_HEIGHT},"
-            f"framerate={HYPERPIXEL_FPS}/1 ! "
-            f"{sink}{sink_props}"
-        )
+        if sink == "fbdevsink":
+            # fb0 is portrait 480x800 BGRx 32bpp.
+            # Rotate landscape camera feed 90° clockwise to fill the screen.
+            return (
+                f"queue leaky=downstream ! "
+                f"videoconvert ! videoscale ! "
+                f"videoflip method=clockwise ! "
+                f"video/x-raw,format=BGRx,width={HYPERPIXEL_FB_WIDTH},height={HYPERPIXEL_FB_HEIGHT} ! "
+                f"{sink}{sink_props}"
+            )
+        else:
+            fmt_caps = (
+                f"video/x-raw,width={HYPERPIXEL_FB_WIDTH},height={HYPERPIXEL_FB_HEIGHT},"
+                f"framerate={HYPERPIXEL_FPS}/1"
+            )
+            return (
+                f"queue leaky=downstream ! "
+                f"videoscale ! videoconvert ! "
+                f"{fmt_caps} ! "
+                f"{sink}{sink_props}"
+            )
