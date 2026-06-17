@@ -144,7 +144,8 @@ class GstNDIStream:
         bus.add_signal_watch()
         bus.connect("message", self._on_message)
 
-        self._sender = NDISender(self.ndi_name, clock_video=True)
+        self._sender = NDISender(self.ndi_name, clock_video=True,
+                                 width=self.fmt.width, height=self.fmt.height)
         self._loop = GLib.MainLoop()
 
         self._pipeline.set_state(Gst.State.PLAYING)

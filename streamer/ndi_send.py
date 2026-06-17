@@ -85,7 +85,7 @@ def destroy():
 class NDISender:
     """Send UYVY video frames over NDI."""
 
-    def __init__(self, name: str, clock_video: bool = True):
+    def __init__(self, name: str, clock_video: bool = True, width: int = 0, height: int = 0):
         cfg = NDIlib_send_create_t(
             p_ndi_name=name.encode(),
             p_groups=None,
@@ -96,6 +96,10 @@ class NDISender:
         if not self._handle:
             raise RuntimeError(f"NDIlib_send_create failed for '{name}'")
         self._name = name
+        # Pre-allocated reusable buffer — avoids 4MB ctypes alloc per frame at 30fps
+        frame_bytes = width * height * 2 if width and height else 0
+        self._buf: ctypes.Array | None = (ctypes.c_uint8 * frame_bytes)() if frame_bytes else None
+        self._buf_size = frame_bytes
 
     def destroy(self):
         if self._handle:
@@ -105,7 +109,12 @@ class NDISender:
     def send_uyvy(self, data: bytes, width: int, height: int,
                   fps_n: int = 30000, fps_d: int = 1001):
         """Send one UYVY frame. data must be width*height*2 bytes."""
-        buf = (ctypes.c_uint8 * len(data)).from_buffer_copy(data)
+        needed = len(data)
+        if self._buf is None or self._buf_size < needed:
+            self._buf = (ctypes.c_uint8 * needed)()
+            self._buf_size = needed
+        ctypes.memmove(self._buf, data, needed)
+        buf = self._buf
         frame = NDIlib_video_frame_v2_t(
             xres=width,
             yres=height,

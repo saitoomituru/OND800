@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 def _ndi_name(camera: Camera) -> str:
     """Build a stable NDI stream name from camera info."""
-    base = camera.name.replace(" ", "-")
-    # append device suffix to distinguish two identical cameras
+    import re
+    base = re.sub(r"[^A-Za-z0-9_-]", "-", camera.name)
+    base = re.sub(r"-{2,}", "-", base).strip("-")
     dev_suffix = camera.device.replace("/dev/video", "v")
     return f"OND800-{base}-{dev_suffix}"
 
