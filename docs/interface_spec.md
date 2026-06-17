@@ -7,6 +7,14 @@
 このドキュメントは OND800（Layer 2）・FAN800（Layer 1）・SAO800（Layer 3）の
 レイヤー間境界仕様を定義する。各リポジトリの実装はこの仕様に従う。
 
+### 用語正式定義
+
+| 識別子 | 正式名称 |
+|-------|---------|
+| OND800 | OBS NDI Dominator 800 |
+| FAN800 | **Fannel** Ad-hoc Network 800（"Fannel" ＝ ファンネルの造語） |
+| SAO800 | **Service Add-on OBS** 800 |
+
 ---
 
 ## レイヤー構成と依存方向
