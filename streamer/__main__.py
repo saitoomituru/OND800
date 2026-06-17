@@ -7,11 +7,30 @@ import sys
 
 from .orchestrator import Orchestrator
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
+_LOG_FILE = "/var/log/ond800-streamer.log"
+_LOG_FILE_FALLBACK = "/tmp/ond800-streamer.log"
+
+def _setup_logging() -> None:
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
+    log_path = _LOG_FILE
+    try:
+        fh = logging.FileHandler(log_path)
+    except (PermissionError, OSError):
+        log_path = _LOG_FILE_FALLBACK
+        fh = logging.FileHandler(log_path)
+    fh.setLevel(logging.DEBUG)
+    handlers.append(fh)
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=handlers,
+        force=True,
+    )
+    logging.getLogger(__name__).info("Log file: %s", log_path)
+
+_setup_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +39,7 @@ _PID_FILE = "/run/ond800-streamer.pid"
 
 def _acquire_pid_lock() -> None:
     """Ensure only one instance runs. Exits with error if another is already running."""
+    global _PID_FILE
     if os.path.exists(_PID_FILE):
         try:
             existing_pid = int(open(_PID_FILE).read().strip())
@@ -43,7 +63,6 @@ def _acquire_pid_lock() -> None:
     except PermissionError:
         # /run may not be writable when launched interactively as non-root.
         # Fall back to /tmp — still provides same-user protection.
-        global _PID_FILE
         _PID_FILE = "/tmp/ond800-streamer.pid"
         with open(_PID_FILE, "w") as f:
             f.write(str(os.getpid()))
