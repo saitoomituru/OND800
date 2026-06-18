@@ -140,16 +140,16 @@ class HyperPixelCompositor:
     @staticmethod
     def _slot_layout(n: int) -> list[tuple[int, int, int, int]]:
         """Return (x, y, w, h) per slot for n cameras."""
-        W, H = HYPERPIXEL_FB_WIDTH, HYPERPIXEL_FB_HEIGHT
+        W, H = HYPERPIXEL_FB_WIDTH, HYPERPIXEL_FB_HEIGHT  # 480, 800
         if n == 1:
             return [(0, 0, W, H)]
-        if n == 2:
-            sh = H // 2
-            return [(0, 0, W, sh), (0, sh, W, H - sh)]
-        if n == 3:
-            sh = H // 3
-            return [(0, 0, W, sh), (0, sh, W, sh), (0, 2 * sh, W, H - 2 * sh)]
-        # 4
+        if n in (2, 3):
+            # Map source long side (1920) to monitor short side (W=480): scale=0.25
+            # Source short side: 1080 * 0.25 = 270 → slot height
+            # Cap at H//n to prevent overflow when n=3 (3*270=810 > 800)
+            slot_h = min(270, H // n)
+            return [(0, i * slot_h, W, slot_h) for i in range(n)]
+        # 4: 2×2 grid, no rotation
         hw, hh = W // 2, H // 2
         return [
             (0,  0,  hw, hh), (hw, 0,  hw, hh),
@@ -158,8 +158,8 @@ class HyperPixelCompositor:
 
     @staticmethod
     def _rotation(n: int) -> str:
-        """Rotation element string: clockwise for 1-3 cams, none for 4."""
-        return "videoflip method=clockwise ! " if n <= 3 else ""
+        """Clockwise rotation for 1-cam fullscreen only. 2-3 cam: no rotation (landscape strips)."""
+        return "videoflip method=clockwise ! " if n == 1 else ""
 
     # ------------------------------------------------------------------
     # Pipeline build
