@@ -64,6 +64,15 @@ OND800は、演者本人が**演じながらでもソロで手軽にマルチカ
 **自動起動**: systemd `ond800-streamer.service` でブート時自動起動済み  
 詳細は [`notes/2026-06-15_season1-complete.md`](notes/2026-06-15_season1-complete.md) 参照。
 
+## Season 2 目標 — **達成済み (2026-06-18)**
+
+2カメラ同時NDI送出・OBS 2ソース受信・HyperPixel分割表示の同時稼働を確立。
+
+**達成構成**: C922 + EMEET C960 → MJPG 1920x1080@30fps × 2 → NDI SDK v6 → OBS（2ソース同時）  
+**HyperPixel表示**: HyperPixelCompositor（1cam:フルスクリーン回転 / 2-3cam:縦スタック / 4cam:2×2グリッド）  
+**測定結果**: drops=0×2, CPU ~65%, 温度 65-67°C, スロットリングなし（Wi-Fi環境）  
+詳細は [`notes/2026-06-18_obs-2source-load-test.md`](notes/2026-06-18_obs-2source-load-test.md) 参照。
+
 ### NDIストリーミング方針 (デフォルト設定基準)
 
 設定が明示されていない場合、以下の優先順位で自動選択する:
@@ -91,7 +100,7 @@ OND800は、演者本人が**演じながらでもソロで手軽にマルチカ
 | シーズン | 状態 | スコープ |
 |---------|------|---------|
 | Season 1 | ✅ 完了 | Pi5上でのNDI公開ストリーム確立 |
-| Season 2 | 🔄 進行中 | 複数カメラ認識＋OBSソース連携基礎テスト |
+| Season 2 | ✅ 完了 | 2カメラNDI同時送出・OBS受信・HyperPixel分割表示 |
 | Season 3 | 📐 設計中 | FAN800統合・マルチRTMPフェールオーバー・兵装プロファイル・単騎出撃検証 |
 
 ### Season 3 実装ターゲット
