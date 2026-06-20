@@ -1,127 +1,261 @@
-# OND800 レイヤー間インターフェース仕様
+# OND800シリーズ レイヤー間インターフェース仕様
 
-**バージョン:** Season 3 v1.0  
-**著者:** ZeroRoomLab / saitoomituru  
-**最終更新:** 2026-06-18
+**バージョン:** Season 3 v2.0
+**著者:** ZeroRoomLab / saitoomituru
+**最終更新:** 2026-06-21
 
-このドキュメントは OND800（Layer 2）・FAN800（Layer 1）・SAO800（Layer 3）の
-レイヤー間境界仕様を定義する。各リポジトリの実装はこの仕様に従う。
-
-### 用語正式定義
-
-| 識別子 | 正式名称 |
-|-------|---------|
-| OND800 | OBS NDI Dominator 800 |
-| FAN800 | **Fannel** Ad-hoc Network 800（"Fannel" ＝ ファンネルの造語） |
-| SAO800 | **Service Add-on OBS** 800 |
+> このファイルがFAN800・SAO800の実装の正本。
+> 変更はOND800リポジトリ側が行い、FAN800・SAO800はこれに従う。
 
 ---
 
-## レイヤー構成と依存方向
+## 依存方向の原則
 
 ```
-SAO800（Layer 3, OBSプラグイン）
-    ↓ NDI / OSC / WebSocket（受信のみ）
-OND800（Layer 2, モビルスーツ）
-    ↓ BLE GATT イベント言語（送信のみ）
-FAN800（Layer 1, ESP32サイコミュファンネル）
+SAO800（Layer 3）→ OND800のNDI出力を受ける
+OND800（Layer 2）→ FAN800のBLE GATTイベント仕様に従ってコマンドを送る
+FAN800（Layer 1）→ 上位レイヤーに依存しない。イベントを受けて自律動作する
 ```
 
-**原則：依存は上位レイヤーから下位レイヤーへ。逆方向の依存は禁止。**
-
-- FAN800はOND800を知らない（イベントを受けて自律動作するのみ）
-- OND800はSAO800を知らない（NDI出力を提供するのみ）
+**OND800はOBSの設定ファイルを直接参照しない。**
+**OND800はSAO800なしで単独起動・配信できなければならない。**
 
 ---
 
-## OND800 ↔ FAN800（BLE GATT）
+## Layer 1：FAN800 ↔ OND800（BLE GATT）
 
-### 基本原則
-
-OND800は**意図（インテント）**を送る。ハードウェアプリミティブは露出しない。
-物理的動作の決定（タイミング・強度・シーケンス）はFAN800ファームウェアが担う。
-
-### イベント言語仕様（確定）
-
-| イベント名 | 意味 | FAN800側の動作 |
-|-----------|------|--------------|
-| `FIRE_SLIME_SMALL` | スライム小量射出 | ポンプ短時間駆動 |
-| `FIRE_SLIME_MEDIUM` | スライム中量射出 | ポンプ中時間駆動 |
-| `FIRE_SLIME_LARGE` | スライム大量射出 | ポンプ長時間駆動 |
-| `PUMP_STOP` | ポンプ即時停止 | 全ポンプ停止 |
-| `LIGHT_STAGE_RED` | ステージ照明→赤 | LED制御 |
-| `LIGHT_STAGE_GREEN` | ステージ照明→緑 | LED制御 |
-| `LIGHT_STAGE_BLUE` | ステージ照明→青 | LED制御 |
-| `LIGHT_STAGE_WHITE` | ステージ照明→白 | LED制御 |
-| `LIGHT_OFF` | 照明全消灯 | LED全停止 |
-| `SSR_ON` | SSRリレーON | AC機器ON |
-| `SSR_OFF` | SSRリレーOFF | AC機器OFF |
-| `UNIT_STATUS_REQ` | ユニット状態要求 | バッテリー・温度等を返却 |
-
-### 禁止パターン
+### イベント言語の原則
 
 ```
-❌ GPIO_PIN_4_HIGH_500ms   （ハードウェアプリミティブの露出）
-❌ I2C_ADDR_0x3C_WRITE_0xFF  （密結合）
-❌ PUMP_DURATION_MS_300    （物理パラメータの直接指定）
+良い例：FIRE_SLIME_MEDIUM / LIGHT_STAGE_RED / PUMP_STOP
+悪い例：GPIO_PIN_4_HIGH_500ms / I2C_ADDR_0x3C_WRITE_0xFF
 ```
 
-### BLE GATT プロファイル（暫定）
+FAN800は「何をしたいか」だけを知る。「どうやるか」はFAN800の責務。
 
-- Service UUID: `未確定（Season 3で決定）`
-- Characteristic UUID: `未確定（Season 3で決定）`
-- データ形式: UTF-8文字列（イベント名をそのまま送信）
-- 方向: OND800→FAN800（Write Without Response）
-- 応答: FAN800→OND800（Notify、`UNIT_STATUS_REQ` 応答時のみ）
+### FAN800自己申告パケット（接続時・BLE GATT）
+
+```json
+{
+  "uuid": "FAN-XX0-xxxx",
+  "role": "slime_bazooka",
+  "display_name": "スライムバズーカ左",
+  "capabilities": [
+    { "event": "FIRE_SLIME_SMALL",  "params": {} },
+    { "event": "FIRE_SLIME_MEDIUM", "params": {} },
+    { "event": "FIRE_SLIME_LARGE",  "params": {} }
+  ],
+  "mutex_group": "pyro",
+  "mutex_with": [],
+  "base_recast_ms": 5000,
+  "cooldown_ms": 5000,
+  "location_hint": "スタジオA"
+}
+```
+
+### MIDIルール配布パケット（BLE GATT・低頻度）
+
+```json
+{
+  "type": "midi_rule",
+  "bpm": 120,
+  "quantize": "1/4",
+  "swing": 0.0,
+  "sequence": [
+    { "beat": 1, "event": "LIGHT_STROBE" },
+    { "beat": 3, "event": "FIRE_SLIME_MEDIUM" }
+  ],
+  "loop": true,
+  "start_at": "next_bar"
+}
+```
+
+FAN800はルール受信後、**内部RTCで自律タイムキープ**する。OND800との通信が切れても動作継続。
+
+### ACKパケット（FAN800 → OND800）
+
+```json
+{
+  "uuid": "FAN-XX0-xxxx",
+  "type": "ack",
+  "event": "FIRE_SLIME_MEDIUM",
+  "result": "ok",
+  "timestamp_ms": 1234567890
+}
+```
+
+リジェクト時は `"result": "rejected"` + `"reason": "cooldown"` を返す。
+
+### イベント言語リファレンス
+
+#### 照明系
+
+| イベント | パラメータ |
+|---|---|
+| `LIGHT_ON` | - |
+| `LIGHT_OFF` | - |
+| `LIGHT_DIM` | `brightness: 0-100` |
+| `LIGHT_COLOR` | `rgb: hex` |
+| `LIGHT_STROBE` | `hz: 1-20` |
+| `LIGHT_STAGE_RED` | - |
+| `LIGHT_STAGE_BLUE` | - |
+| `LIGHT_STAGE_GREEN` | - |
+| `LIGHT_STAGE_WHITE` | - |
+
+#### 特効系
+
+| イベント | パラメータ | mutex_group |
+|---|---|---|
+| `FIRE_SLIME_SMALL` | - | pyro |
+| `FIRE_SLIME_MEDIUM` | - | pyro |
+| `FIRE_SLIME_LARGE` | - | pyro |
+| `RAIN_START` | `intensity: 1-5` | wet |
+| `RAIN_STOP` | - | wet |
+| `SMOKE_START` | `density: 1-5` | - |
+| `SMOKE_STOP` | - | - |
+| `SSR_ON` | - | - |
+| `SSR_OFF` | - | - |
+| `PUMP_STOP` | - | - |
+
+#### MIDI系
+
+| イベント | パラメータ |
+|---|---|
+| `MIDI_NOTE_OUT` | `channel, note, velocity` |
+| `MIDI_CLOCK_OUT` | - |
+| `MIDI_CC_OUT` | `channel, cc, value` |
+| `UNIT_STATUS_REQ` | - |
+
+#### mutex_groupリファレンス
+
+| グループ | 競合 | 理由 |
+|---|---|---|
+| `pyro` | `wet` | 水と火工系は同時禁止 |
+| `wet` | `pyro` | 同上 |
+| `lighting_main` | なし | 照明は他と競合しない |
 
 ---
 
-## OND800 ↔ SAO800（NDI / OSC / WebSocket）
+## Layer 2：OND800 ↔ SAO800
 
-### 基本原則
+### NDI映像経路（OND800 → SAO800）
 
-OND800はNDI映像ストリームを出力する。SAO800（OBSプラグイン）はこれを受信する。
-OND800はSAO800の存在を知らず、SAO800の有無は動作に影響しない。
+- 映像本線はNDI
+- SAO800が接続されていない場合、OND800はobs-websocket v5で直接OBSを制御する
 
-### NDI映像出力
+### NDI MIDIメタデータ（OND800 ↔ SAO800・双方向）
 
-- プロトコル: NDI SDK v6
-- デフォルト設定: 1920x1080 @ 30fps（MJPG経由）
-- ストリーム名: `OND800_{hostname}_{camera_index}`
-- メタデータ送信: カメラID・タイムスタンプ（将来拡張、現状未実装）
+NDI Metadata Lab公式標準のMIDIメタデータを使用。
 
-### OND800→SAO800 制御チャネル（未確定）
+```xml
+<!-- OND800 → SAO800：MIDIイベント送出 -->
+<ndi_midi version="1.0">
+  <note channel="11" pitch="36" velocity="100" type="note_on"/>
+</ndi_midi>
+```
 
-Season 3で検討。候補：
+### NDI上流メタデータ（SAO800 → OND800）
 
-| 候補 | 特徴 |
-|------|------|
-| OSC（UDP） | 軽量・ブロードキャスト可・OBSプラグイン実績あり |
-| WebSocket | 双方向・確実性高い |
-| NDIメタデータ | 映像と同一チャネル・実装コスト低 |
+```xml
+<!-- SAO800 → OND800：BPM解析結果 -->
+<ndi_zero800_analysis version="1.0">
+  <bpm value="128.5" confidence="0.95"/>
+  <sentiment score="0.8" label="盛り上がり"/>
+</ndi_zero800_analysis>
 
-→ Season 3実装前に決定し、このファイルを更新する。
+<!-- SAO800 → OND800：PTZ制御 -->
+<ndi_zero800_control version="1.0">
+  <ptz pan="0.3" tilt="-0.1" zoom="1.0"/>
+</ndi_zero800_control>
+```
+
+### 解像度ネゴシエーション
+
+解像度変更命令はNDIプロトコル上存在しない。
+SAO800はConnection Metadataで「希望解像度」をヒントとして送信する。
+**OND800が最終決定権を持つ。**
+
+```xml
+<ndi_capabilities_info>
+  <video xres="1920" yres="1080" frame_rate_N="30000" frame_rate_D="1001"/>
+</ndi_capabilities_info>
+```
+
+### SAO800スペック申告（接続時・obs-websocket v5経由）
+
+```json
+{
+  "type": "sao800_capabilities",
+  "features": [
+    "bpm_detect",
+    "vad",
+    "llm_sentence",
+    "face_encode",
+    "encode_offload",
+    "sentiment",
+    "midi_dmx_bridge"
+  ]
+}
+```
+
+OND800はこのリストを元にGUI選択肢を動的生成する。
+
+---
+
+## Layer 3：OND800 ↔ OBS（obs-websocket v5）
+
+OBS Studio v28以降ビルトイン。ポート4455。
+
+### 主要コマンド
+
+| コマンド | 用途 |
+|---|---|
+| `SetCurrentProgramScene` | シーン切替 |
+| `SetSceneItemEnabled` | ソース表示/非表示 |
+| `SetInputVolume` | 音量調整（マイクフェイルオーバー） |
+| `SetInputMute` | ミュート |
+| `StartRecord` / `StopRecord` | 録画制御 |
+| `TriggerMediaInputAction` | メディアソース制御 |
+
+### マイクフェイルオーバー手順
+
+```
+発火 0.5拍前
+  SetInputVolume（ガンマイク）: 0dB
+  SetInputVolume（ピンマイク）: フェードアウト開始
+
+発火タイミング
+  SetInputMute（ピンマイク）: true
+  SetInputVolume（ガンマイク）: 0dB 完了
+
+復帰（演者判断後）
+  SetInputVolume（ピンマイク）: フェードイン
+  SetInputMute（ピンマイク）: false
+```
+
+---
+
+## 操縦粒度の定義
+
+| 操縦者 | 粒度 | インターフェース | 接続 |
+|---|---|---|---|
+| 演者 | 1/16・身体的リアルタイム | OND HUD・物理ボタン | BLE直結 |
+| DJ | フレーズ・キュー単位 | CDJキューポイント・MIDIパッド | FAN800-MD USB |
+| VJ | クリップ・セクション単位 | Resolume MIDI | FAN800-MD USB |
+| 観客 | 投げ銭単位 | TikTok/YouTubeUI | OND800が変換 |
+| OND800 | ルール・マクロ | 自動 | 全員に配布 |
+
+DJ/VJは**キュー予約するだけ**。タイミングはFAN800内部クロックが取る。
 
 ---
 
 ## 兵装プロファイル（RTMP / SRT）
 
-### コンテンツ種別と推奨兵装
-
 | プロファイル名 | 送出先 | 主なコンテンツ種別 |
-|--------------|--------|-----------------|
+|---|---|---|
 | `REQUIEM` | TikTok Live | 拡散優先・国内外同時・アルゴリズム面制圧 |
 | `COLONY_LASER` | YouTube | 長期アーカイブ・検索流入・技術解説 |
 | `LUNAR_LASER` | X (Twitter) Live | 国内テキスト層・速報・論争 |
 | `OFFLINE` | USB SSD / USB HDD | ネットワーク不到達時のフォールバック |
 
-### フェールオーバー原則
-
-- プラットフォームBANシャドバン＝兵装切替。ミッション中止ではない。
-- 切替はOND800コックピットのトグル1つで完結する（タップ数：1）。
-- `OFFLINE` プロファイルはネットワーク不到達を検出したら自動提案する。
-- 復帰後アーカイブ送出は自動または手動トリガーのいずれかをサポートする。
-
----
-
-*このドキュメントはSeason 3設計フェーズの生きた仕様書。実装が確定したセクションから更新すること。*
+*このドキュメントはSeason 3の正本インターフェース仕様。実装が確定したセクションから更新すること。*

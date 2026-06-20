@@ -95,6 +95,41 @@ OND800は、演者本人が**演じながらでもソロで手軽にマルチカ
 > MJPG→YUYV変換後にv4l2ndiへ渡すパイプラインが必要。  
 > 現状(v4l2ndi単体)はYUYV 640x480@30fps が最大実用構成。
 
+## 信号経路
+
+```
+FAN800 ──BLE GATT──▶ OND800 ──obs-websocket v5──▶ OBS
+                        │
+                        └──NDI（映像+MIDIメタデータ）──▶ SAO800
+                                                          │
+                        ◀──NDI上流メタデータ─────────────┘
+                          （PTZ/パン/チルト/AI処理結果）
+```
+
+| 用途 | プロトコル |
+|---|---|
+| OND800 → OBS 制御 | obs-websocket v5 |
+| OND800 ↔ SAO800 映像 | NDI |
+| SAO800 → OND800 PTZ/AI結果 | NDI上流メタデータ |
+| FAN800 ↔ OND800 制御 | BLE GATT イベント言語 |
+| FAN800 ↔ スタジオ設備 | USB-MIDI / DIN-MIDI / DMX |
+| ジャムセッション精度同期 | USB-MIDI（アンビリカル） |
+
+## FAN800シリーズ
+
+ESP32ベースの演出IoTプラットフォーム。共通BLE GATTプロトコルで全機種がOND800と通信する。
+
+| 型番 | 出力 | 用途 |
+|---|---|---|
+| FAN800-AC | ACスイッチング | 照明・スモーク・バズーカ電源 |
+| FAN800-PWM | PWM制御 | LEDテープ・ピストンマシン・サーボ |
+| FAN800-IR | リモコン信号クローン | 既製品エフェクター乗っ取り |
+| FAN800-MD | USB-MIDI + DIN5 送受信 | DJ・VJ・シンセへの操縦桿トス |
+| FAN800-DMX | DMX512 送受信 | 舞台照明卓直結 |
+| FAN800-MD/DMX | MIDI↔DMX変換 | ブリッジドングル |
+
+詳細は [saitoomituru/FAN800](https://github.com/saitoomituru/FAN800) リポジトリ参照。
+
 ## シーズンロードマップ
 
 | シーズン | 状態 | スコープ |
@@ -129,6 +164,9 @@ Level 2：コロニーレーザーなし → OND800 + USB SSD でオフライン
 /app-panel/sdl - SDL2シミュレータ(PC上でのUI動作確認用)
 /design        - Figma等のデザイン資産・エクスポート
 /docs          - セットアップ手順、設計記録
+  interface_spec.md   - レイヤー間インターフェース仕様（FAN800/SAO800の実装正本）
+  datastore_arch.md   - データストアアーキテクチャ（ENV/Location/Loadout/Identity）
+  controller_arch.md  - コントローラーアーキテクチャ（イベントキュー・MIDIシーケンサー）
 /notes         - 実験ノート、作業ログ(AIエージェント/人間共通の記録場所)
 /firmware      - Arduino等、物理コントローラー関連(将来用、現状は空でも保持)
 ```
