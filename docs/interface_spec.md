@@ -1,6 +1,6 @@
 # OND800シリーズ レイヤー間インターフェース仕様
 
-**バージョン:** Season 3 v2.0
+**バージョン:** Season 3 v2.1
 **著者:** ZeroRoomLab / saitoomituru
 **最終更新:** 2026-06-21
 
@@ -24,6 +24,19 @@ FAN800（Layer 1）→ 上位レイヤーに依存しない。イベントを受
 
 ## Layer 1：FAN800 ↔ OND800（BLE GATT）
 
+### イベントスキーマの版管理
+
+FAN800の自己申告・イベント・ACK・MIDIルールには `event_schema_version` を必ず含める。
+値はSemVer文字列とし、現在の版は `"1.0.0"` とする。
+
+- メジャー版が一致する範囲では、受信側は未知の追加フィールドを無視できる。
+- 受信側が対応しない新しいメジャー版は実行せず、`unsupported_schema` で拒否する。
+- `event_schema_version` がない旧端末は `legacy_unversioned` として認識する。
+- 旧端末のイベント実行は明示的にlegacy互換を有効にした場合だけ許可する。既定は拒否する。
+- 安全判定はスキーマ互換性判定の後にも必ずFAN800側で実行する。
+
+この版管理は通信データの契約だけを表す。ファームウェア版やハードウェア版とは分離する。
+
 ### イベント言語の原則
 
 ```
@@ -37,6 +50,7 @@ FAN800は「何をしたいか」だけを知る。「どうやるか」はFAN80
 
 ```json
 {
+  "event_schema_version": "1.0.0",
   "uuid": "FAN-XX0-xxxx",
   "role": "slime_bazooka",
   "display_name": "スライムバズーカ左",
@@ -57,6 +71,7 @@ FAN800は「何をしたいか」だけを知る。「どうやるか」はFAN80
 
 ```json
 {
+  "event_schema_version": "1.0.0",
   "type": "midi_rule",
   "bpm": 120,
   "quantize": "1/4",
@@ -76,6 +91,7 @@ FAN800はルール受信後、**内部RTCで自律タイムキープ**する。O
 
 ```json
 {
+  "event_schema_version": "1.0.0",
   "uuid": "FAN-XX0-xxxx",
   "type": "ack",
   "event": "FIRE_SLIME_MEDIUM",
@@ -84,7 +100,10 @@ FAN800はルール受信後、**内部RTCで自律タイムキープ**する。O
 }
 ```
 
-リジェクト時は `"result": "rejected"` + `"reason": "cooldown"` を返す。
+リジェクト時は `"result": "rejected"` と `reason` を返す。
+`reason` の共通値は `unsupported_schema` / `legacy_schema_disabled` /
+`unknown_event` / `invalid_event_name` / `cooldown` / `temperature` /
+`overcurrent` / `midi_not_connected` とする。
 
 ### イベント言語リファレンス
 
