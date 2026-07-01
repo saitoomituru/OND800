@@ -5,6 +5,15 @@ NDIマルチカメラ制御・BLE IoTファンネル展開・マルチRTMP兵装
 
 単なる「スイッチャー」ではなく、**コックピットそのもの**。引き金はパイロットが引く。
 
+## Design Principle: Do Not Break the Show
+
+OND800 is designed for situations where the control surface may be visible to the audience or captured by cameras.
+
+For this reason, the UI uses performance-world labels rather than raw engineering labels. A live show should not expose internal configuration screens, endpoint names, device IDs, or troubleshooting language unless the operator explicitly requests it.
+
+The control surface should feel like a prop from the performance world, not a leaked backstage console.
+
+
 ## 設計哲学
 
 OND800はファンネルではない。モビルスーツだ。
