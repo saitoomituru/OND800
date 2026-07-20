@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# OND800実機のローカル認証・配備設定（commit禁止）
+/ond-config/
