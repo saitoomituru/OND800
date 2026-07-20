@@ -367,6 +367,13 @@ README冒頭へ逆流させない。LANアドレス、Bonjour名、ローカルI
 公開サーバー基準で自動的に秘密扱いしない。対象workspaceの運用、ユーザー指定、実際の公開範囲に
 従って機密性を判定する。
 
+## 作業言語とGit履歴
+
+- コミットメッセージ、実験ノート、作業ログ、変更理由は可能な限り日本語で記述する。
+- API名、protocol field、エラー原文、外部仕様の正式名称、既存英語正本など、技術上英語を保持すべき箇所は無理に翻訳しない。
+- 英語の方が一般的という理由だけで日本語の現場文脈を置き換えない。英語成果物が必要な場合は、ZeroRoomLab言語レジスタに従ってen-USへ意訳する。
+- Git履歴は後から現場の判断を追跡できることを優先し、短くても変更目的が分かる日本語件名を使う。
+
 ## ZeroRoomLab言語レジスタ（必読）
 
 README、技術文書、翻訳、主張表現を編集する前に、ZeroRoomLab-manifestの[コーディングAI向け日本語意訳レジスタ](https://github.com/saitoomituru/ZeroRoomLab-manifest/blob/main/docs/operations/coding-ai-japanese-paraphrase-register.ja.md)を読み、背景ベクトルを取得すること。英語出力は明示がない限りen-USとし、単語の直訳ではなく、日本語原文の意図・読み手の責務・事実強度をen-USで同じ働きをする表現へ写像する。
