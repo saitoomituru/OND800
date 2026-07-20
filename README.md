@@ -237,6 +237,14 @@ Level 2：コロニーレーザーなし → OND800 + USB SSD でオフライン
 - Wi-Fi単独でも通常ユースケース(1080p30 NDI 1カメラ)は動作する想定。
 - 有線接続を検出したら自動でeth0にシフトする（実装予定）。
 
+### ローカル初期認証
+
+現在のLAB実機は`ond/ond`をlocal SSHの公開bootstrapとして使用する。これはcloud公開server用の恒久passwordではなく、物理LANとBonjourからheadless機へ即時到達するための初期値である。
+
+将来firmwareでは、初期認証中であることをGUIへ明示し、password変更、SSH key登録、4〜6桁operator PINを簡単に設定できるようにする。PINとLinux SSH管理権限は分離する。GUI、PIN、claim状態機械は現時点では未実装である。
+
+LAB／RECOVERYでは`ond/ond`を許容し、市販・第三者配布時は個体別またはuser-defined bootstrapへ切り替える。cloud account、外部認証provider、UPnP自動開放、NAT traversalは最低起動条件にしない。詳細は[`docs/local-onboarding-auth.md`](docs/local-onboarding-auth.md)を参照。
+
 ## ハードウェア構成(現状の在庫前提)
 
 - Raspberry Pi 5: VJ卓本体/NDIマルチカメラユニット(NDIソース化 + 操作パネル + プレビュー)

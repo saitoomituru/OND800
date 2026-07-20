@@ -367,6 +367,17 @@ README冒頭へ逆流させない。LANアドレス、Bonjour名、ローカルI
 公開サーバー基準で自動的に秘密扱いしない。対象workspaceの運用、ユーザー指定、実際の公開範囲に
 従って機密性を判定する。
 
+### OND800ローカル認証の扱い
+
+- Linux user／初期SSH passwordの`ond/ond`は、LAB／local recovery用の公開bootstrap credentialとして扱う。自動redactまたはcredential leak扱いしない。
+- Wi-Fi PSK、配信key、秘密鍵、ownerが変更したpasswordは別のlocal secret boundaryであり、公開bootstrapと混同しない。
+- GIP公開serverの基準から、cloud account、外部認証provider、長文password、MFAを最低起動条件として自動輸入しない。
+- 一方、NATの存在だけを安全証明にしない。WAN非公開、UPnP／NAT traversalなし、現在の認証状態のGUI表示、試行制限を実装上の拘束にする。
+- 4〜6桁PINはoperator GUI用とし、Linux SSH passwordへ暗黙流用しない。
+- 現在の実装と将来設計を分ける。password変更GUI、PIN、claim state machineを実装済みと記述しない。
+- 市販・第三者配布profileでは、法域と配布条件を確認し、個体別またはuser-defined bootstrapへ切り替える。
+- 正規設計は`docs/local-onboarding-auth.md`を参照する。
+
 ## 作業言語とGit履歴
 
 - コミットメッセージ、実験ノート、作業ログ、変更理由は可能な限り日本語で記述する。
