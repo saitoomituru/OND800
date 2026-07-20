@@ -13,6 +13,21 @@ For this reason, the UI uses performance-world labels rather than raw engineerin
 
 The control surface should feel like a prop from the performance world, not a leaked backstage console.
 
+## Recovery Principle: The Show Comes Back First
+
+OND800はスポンサーの財布を守るための商業放送機材ではない。**演者が止まらずに戻るための機材**だ。
+商業KPIと責任回避が必要なら、そのために作られた商業デバイスを買えばよい。同じ哲学をOSSで安価に
+再生産することは、このプロジェクトの目的ではない。
+
+芸人にとって炎上より致命的なのは、何も起きず、誰にも拾われず、スルーされることだ。事故は芸へ戻せる。
+OBSの設定画面を掘っている時間は芸にならない。だから障害処理は、**復帰時間とショー継続**を優先する。
+同名の正規ソースが別のnetwork interface／IP endpointで再出現した場合、古い接続を永久に守るのではなく、
+短いdebounceと対象sourceのscope確認を通してreceiverを再生成し、ショーへ復帰させる。
+
+これはNDIやDistroAVの技術実装を欠陥扱いする主張ではない。upstreamとOND800では主人が違う。
+スポンサー保護の哲学とは相容れないことを明示した上で、技術的な差分は`SHOW_CONTINUITY`の
+adapter／watchdogとしてこちらの実装で引き受ける。
+
 
 ## 設計哲学
 

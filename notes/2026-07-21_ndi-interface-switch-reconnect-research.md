@@ -2,6 +2,7 @@
 
 状態: `[RESEARCHED]` `[KNOWN-ARCHITECTURAL-EDGE]` `[DISTROAV-RECOVERY-GAP]`
 調査日: 2026-07-21
+更新: 2026-07-21 — 演者向け障害復旧哲学とMVP昇格境界を追記
 対象: NDI senderのEthernet→Wi-Fi切替、mDNS再広告、NDI transport、OBS DistroAV receiver
 一次資料: NDI公式documentation、DistroAV公式repository／release、OBS Project公式obs-websocket repository
 
@@ -121,6 +122,39 @@ NDI sender SDKにはfailsafe sourceがあり、sender故障時にreceiverを別s
 2. obs-websocketから同操作を行い、sender connections 0→1の時間を測る
 3. 連続flapを模擬せず、一回の有線→Wi-Fi切替でdebounce時間を決める
 4. probeが通った後にだけ、監視scriptまたはcockpit操作へ昇格する
+
+## [INTERPRETATION] 保持的なreceiverとOND800の目的関数
+
+旧endpointを長時間保持し、同名sourceの別endpointへ即座に乗り換えない挙動は、誤接続や送信者の成り代わりを避けたい系では安全側に働きうる。大人数の商業放送では、一瞬でも別映像を送出する事故の損失が、operatorによる明示再接続の手間を上回る場合がある。
+
+一方OND800が最適化するのは、スポンサーや送出組織の責任処理ではなく、ソロ演者がショーへ戻るまでの時間である。同じ事故でも、演者はリアクションや物語へ転換できるが、OBS設定を掘る作業は演技を中断し、コンテンツ化の余地も奪う。この用途差はreceiverの自動再生成をOND800／SAO800側で補う理由になる。
+
+## [UNKNOWN] 75分という値の哲学
+
+NDI公式FAQは旧IP address／portを既定75分保持する事実を示すが、その値が公共放送の誤接続やmedia hijack対策として選ばれたという設計意図までは確認できていない。現時点では筋の通る哲学的推測であり、upstreamの明示的な脅威modelとして引用しない。
+
+## [INNER] スポンサーの機材ではなく、エンターテイナーの機材
+
+既存libraryの技術実装が悪いとは限らない。多数の資本、送出責任、複数スタッフを持つ現場へ合わせた保守的な挙動には、その現場の合理がある。ただし、スポンサーの財布を演者の人生より上位に置く商業哲学とは相容れない。技術実装への敬意を、その哲学への中立義務にしない。
+
+芸人にとって炎上より致命的なのは無風だ。炎上は芸とネタとして巻き取れるが、スルーされたら何も始まらない。OND800は「事故を絶対に見せない箱」ではなく、「事故っても演者が這いずって戻り、事故までショーへ変える箱」である。商業KPIが必要なら商業機材を買えばよく、その哲学をOSSで安価に再生産することは本流の目的ではない。
+
+## [MARKETING-CANDIDATE]
+
+> OND800はスポンサーを守るためのカメラではない。演者がショーへ戻るためのカメラだ。
+> 回線が変わったなら、別IPでも這いずって戻ってこい。事故を隠すより、復帰までをコンテンツにする。
+
+短縮候補:
+
+> Do not break the show. If it breaks, crawl back on stage.
+
+## docs／実装への昇格
+
+- 採用済み設計: [`../docs/failure-recovery-philosophy.md`](../docs/failure-recovery-philosophy.md)
+- README: `SHOW_CONTINUITY`を既定の復旧profileとして掲示
+- 実装: 未着手。OBS scene item disable→enable probe通過後にreceiver watchdog MVPへ進む
+- 追跡: [GitHub Issue #3](https://github.com/saitoomituru/OND800/issues/3)
+- 非目標: operator確認とスポンサー損失回避を主目的にする商業放送profile。本流へ必要ならず、外部profile／forkの射程とする
 
 ## Provenance
 
