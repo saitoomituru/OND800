@@ -1,6 +1,6 @@
 # OND800液晶割れ後・電力測量メモ
 
-状態: `[ACTIVE]` `[Layer A]` `[LIMITED]`  
+状態: `[ACTIVE]` `[Layer A]` `[LIMITED]` `[NDI-RECOVERED]`
 開始日: 2026-07-20  
 対象: HyperPixel 4.0破損後のOND800 Raspberry Pi 5、電源経路、USB機器、DPI表示器  
 検証範囲: Piのkernel／firmwareログ、温度、throttle bits、接続デバイス、ユーザーの現場電力報告  
@@ -90,6 +90,54 @@ systemctl --no-pager --full status ond800-streamer
 - カメラ0／1／2台での低電圧発生頻度。
 - 停電・復電とfilesystem／systemd／NetworkManager profile消失の因果関係。
 
+## [FACT] 液晶パージ後の比較結果
+
+観測時刻: 2026-07-20 20:03 JST前後
+
+boot ID: `a522bbe4-38fe-449f-91e5-69286211aa59`
+
+構成: 破損HyperPixelを物理的に取り外し、C922、EMEET C960、Ethernetを接続
+
+- ユーザーが破損液晶を物理パージした後、NDI sourceが再び上がったことを受信側で確認した。
+- 途中のログ収集失敗は物理USB抜けによるものとユーザーから報告された。再接続後、`192.168.0.13`へのSSHは復活した。抜けたUSB機器の個別同定は本ログでは行っていない。
+- `ond800-streamer.service`はactive/enabledで、2台のカメラを起動時に検出した。
+- EMEET C960とC922はいずれもMJPG 1920x1080@30fpsでNDI送信を開始した。
+- 両streamは各3000 frames時点で`drops=0`、`connections=1`だった。
+- Ethernetは観測時点でTX 2,901,443,398 bytes、1,931,459 packets、errors 0、dropped 0、carrier errors 0だった。
+- streamer processは約200% CPUを使用し、Pi全体では約42.5% idleを残していた。
+- メモリ使用量は約437MiB／7.9GiB、swap使用量は0だった。
+- 温度は初回56.5°C、安定スナップショットで59.3°Cだった。
+- `vcgencmd get_throttled`は2回とも`0x0`だった。
+- 今回bootのkernel journalにundervoltage、voltage normalised、throttle記録はなかった。
+- 物理液晶を外した後もDevice Tree overlay由来の`/dev/fb0`は存在し、streamerは`HyperPixel display detected`としてdisplay compositor branchを実行していた。
+- Wi-Fiは引き続きdisconnectedで、通信とNDI送信はEthernet経路だった。
+
+### 比較表
+
+| 観測 | 破損液晶接続時 | 液晶物理パージ後 |
+|---|---|---|
+| NDI workload | pipeline停止状態 | 1080p30×2、受信接続あり |
+| low-voltage | boot中・診断中に反復 | 今回bootでは0件 |
+| throttle bits | `0x50000` | `0x0` |
+| 温度 | 52.7°C（pipeline停止） | 56.5→59.3°C（2系統送信） |
+| framebuffer | `/dev/fb0`あり | `/dev/fb0`あり（物理panelなし） |
+| NDI drops | 未送信 | 3000 frames×2で0 |
+
+## [INTERPRETATION] パージ後評価
+
+- 破損液晶接続時はNDI pipeline停止中にも低電圧が反復し、物理パージ後は2カメラNDI全負荷でも低電圧を観測しなかった。液晶またはその接続経路が電力不安定へ寄与していた可能性は上がった。
+- 同時に再bootと物理USB再接続が入っているため、今回の比較だけで液晶リーク電流を単独原因とは確定できない。漏れ電流値も未測定である。
+- 原因確定とは別に、液晶を外した構成で最低配信用NDIノードが安定稼働したため、現場運用上はパージ状態を維持する根拠が得られた。
+- `/dev/fb0`の存在は物理panel接続の証明にならない。将来のheadless判定はframebuffer nodeだけでなく、明示設定または実機probeを検討する余地がある。
+- NDI映像経路は復旧したが、Wi-Fi、音声、直接RTMP／SRT、長時間耐久は今回の成功範囲に含めない。
+
+## 次の測量候補
+
+1. 現在のパージ状態を維持し、30分以上の2カメラNDI連続運転でdrop、温度、低電圧を再採取する。
+2. 可能なら電源アダプタ／USB-Cケーブル情報とDC側電圧・電流を記録する。
+3. 破損液晶の再接続試験は必須ではない。再現試験より実用復帰を優先し、危険または復旧を壊す場合は行わない。
+4. `fb0`が残るheadless状態で不要なdisplay compositor負荷を止める明示設定を、別の実装候補として評価する。
+
 ## [INNER] 内観メモ
 
 ここでは「停電しない前提」が都会の輸入定規になる。
@@ -116,6 +164,14 @@ systemctl --no-pager --full status ond800-streamer
 
 このコピーは現場報告と現在の実験目的を接続した候補であり、電源耐性の実証完了を意味しない。
 物理的な液晶パージは、接続／非接続測量後のUser Gateとして保持する。
+
+パージ後の実測版:
+
+> 液晶を外した。2台のカメラが1080p30で戻った。
+> 3000フレームずつ、drop 0。低電圧も0。
+> ロマン砲の画面は失ったが、最低配信用ガムテ砲は撃てる。
+
+この表現の射程は、2026-07-20の実機、Ethernet、NDI 2系統、観測したフレーム範囲に限定する。
 
 ## 停止条件
 
