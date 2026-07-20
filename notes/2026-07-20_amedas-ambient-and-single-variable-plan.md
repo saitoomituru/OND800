@@ -303,7 +303,7 @@ G_{air}=\frac{\dot Q_{air}}{P_{fan}}
 
 操作者報告ではGaN 140W USB PDアダプタを過去に検証済みだが、OND800 Pi 5の受電は5V modeに留まり、高電圧PD modeを利用できなかった。現在は5V/3Aで最低配信を維持する縮退運用である。元実験日時と生logがrepositoryから抜けているため、`2026-07-20_pi5-power-delivery-constraint-reconstruction.md`へ`[SOURCE-GAP]`付きで再構成した。
 
-この既知結果により、汎用高W PDアダプタをさらに横滑り交換する試験は停止する。5V source sagの切り分けだけなら手元の実験用安定化電源で10A級の供給能力を用意できるが、供給電流の余裕だけを増やしても配備価値は薄く、bench対照に限る。次の本命は配線統合を得るPoE HAT、または瞬断・停電bufferを得るbattery HAT等へ電力経路を変更する枝であり、部材入手までresource-gatedとする。
+この既知結果により、汎用高W PDアダプタをさらに横滑り交換する試験は停止する。5V source sagの切り分けだけなら手元の実験用安定化電源で10A級の供給能力を用意できるが、供給電流の余裕だけを増やしても配備価値は薄い。鰐口clip／jumper、露出knob、猫の接触を含むassemblyは実務耐性を下げるため、安全fixtureと有人監視を成立させたbench対照に限る。次の本命は配線統合を得るPoE HAT、または瞬断・停電bufferを得るbattery HAT等へ電力経路を変更する枝であり、部材入手までresource-gatedとする。
 
 ### T3: USBカメラ負荷を2→1→0台
 

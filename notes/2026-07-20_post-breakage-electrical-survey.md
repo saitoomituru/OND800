@@ -46,7 +46,7 @@
 
 過去実験の再構成: 操作者報告ではGaN 140W USB PDアダプタも検証済みだが、受電側は5V modeに留まり、高電圧PD modeの能力を利用できなかった。現在は5V/3Aで凌ぐ縮退運用である。元実験日時、PDO列、実電圧・電流の生logはrepositoryから欠落しているため、詳細は`2026-07-20_pi5-power-delivery-constraint-reconstruction.md`へ`[SOURCE-GAP]`付きで保存した。
 
-判別更新: 汎用高W PDアダプタの追加交換は主実験にしない。現行5V/3A envelopeでカメラ0／1／2台の負荷段階とDC 5V railを測る。5V source sagの因果分離だけなら手元の実験用安定化電源で10A級の供給能力を用意できるが、これは配備解ではなくbench対照に限る。根本変更は配線統合を得るPoE HAT、または瞬断・停電bufferを得るbattery HAT等の部材入手後に別世代比較とする。
+判別更新: 汎用高W PDアダプタの追加交換は主実験にしない。現行5V/3A envelopeでカメラ0／1／2台の負荷段階とDC 5V railを測る。5V source sagの因果分離だけなら手元の実験用安定化電源で10A級の供給能力を用意できるが、これは配備解ではなく、固定端子、電流制限、ヒューズ、knob保護、有人監視を成立させたbench対照に限る。鰐口clip／jumperと露出knobの仮設は、抜け、短絡、逆接、猫の接触による誤設定を増やし、現行USB-Cより実務耐性を下げる。根本変更は配線統合を得るPoE HAT、または瞬断・停電bufferを得るbattery HAT等の部材入手後に別世代比較とする。
 
 ### E3: 破損HyperPixelからのリーク電流または部分短絡
 
@@ -196,7 +196,7 @@ HyperPixel HATアッシーは黒として隔離するが、内部原因を一つ
 2. 可能ならGaN 140W過去実験のアダプタ／USB-Cケーブル情報、提示PDO、DC側電圧・電流を回収する。追加の汎用高W PD電源交換は主探索にしない。
 3. 破損液晶の母機への再接続試験は行わない。工学的fault isolationは完了しており、復旧済み母機を再び危険へ晒さない。
 4. `fb0`が残るheadless状態で不要なdisplay compositor負荷を止める明示設定を、別の実装候補として評価する。
-5. 5V安定化電源10A級はsource sagを分離するbench対照としてのみ使う。投げ銭またはジャンク箱からPoE HAT、battery HATを得た場合、配線統合または停電bufferを持つ別世代の電力経路として比較する。
+5. 5V安定化電源10A級は安全fixtureと有人監視が成立する場合だけ、source sagを分離するbench対照として使う。鰐口clip／jumper仮設を常設しない。投げ銭またはジャンク箱からPoE HAT、battery HATを得た場合、配線統合または停電bufferを持つ別世代の電力経路として比較する。
 
 ## [INNER] 内観メモ
 
