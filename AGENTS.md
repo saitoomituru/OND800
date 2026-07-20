@@ -344,6 +344,29 @@ Layer 1：サイコミュファンネル  FAN800（ESP32 BLEメッシュ）  ←
 - コード: Apache License 2.0
 - 将来のハードウェア設計: CERN-OHL-P v2
 
+## ZeroRoomLab Note・主張レジスター（必読）
+
+実験ノート、README、技術文書、外部向けコピーを編集する前に、隣接するZeroRoomLab-manifestの
+`note/AGENTS.md`、`docs/operations/manifest-operating-model.ja.md`、
+`docs/operations/technical-communication-register.ja.md`をローカル正本として読むこと。
+ローカル正本がない場合だけ公開リポジトリを参照する。
+
+OND800の`notes/`では、最低限次を独立した欄として扱う。
+
+- `[FACT]`: 実機、runtime、commit、command、log、measurementで確認したこと
+- `[INTERPRETATION]`: 観測事実から現在読めること
+- `[HYPOTHESIS]`: 未検証の原因候補と判別実験
+- `[INNER]`: 内観メモ、所感、ポエム、身体感覚、未整理の発想
+- `[MARKETING-CANDIDATE]`: README、note.com、X、YouTube等へ転用しうるマーケ砲候補
+- `[UNKNOWN]`: 取得不能・未観測・未判定。passや不存在へ丸めない
+
+`notes/`へ保存した文章は、正規仕様、実装済み契約、公開採用済みコピーではない。
+README、`docs/`、コード、外部媒体へ昇格するときは、対象媒体のレジスター、根拠、試験境界、
+User Gateを確認する。READMEのマーケ表現を技術証拠として代用せず、深い技術文書の留保を
+README冒頭へ逆流させない。LANアドレス、Bonjour名、ローカルIoTの初期認証方式を、GIPへ晒す
+公開サーバー基準で自動的に秘密扱いしない。対象workspaceの運用、ユーザー指定、実際の公開範囲に
+従って機密性を判定する。
+
 ## ZeroRoomLab言語レジスタ（必読）
 
 README、技術文書、翻訳、主張表現を編集する前に、ZeroRoomLab-manifestの[コーディングAI向け日本語意訳レジスタ](https://github.com/saitoomituru/ZeroRoomLab-manifest/blob/main/docs/operations/coding-ai-japanese-paraphrase-register.ja.md)を読み、背景ベクトルを取得すること。英語出力は明示がない限りen-USとし、単語の直訳ではなく、日本語原文の意図・読み手の責務・事実強度をen-USで同じ働きをする表現へ写像する。

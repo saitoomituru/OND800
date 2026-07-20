@@ -96,6 +96,14 @@ class Orchestrator:
     # udev hotplug
     # ------------------------------------------------------------------
 
+    def _dispatch_udev_event(self, device: pyudev.Device) -> None:
+        """Adapt pyudev's single-device callback to the internal handler."""
+        action = device.action
+        if action is None:
+            logger.warning("udev event without action ignored: %s", device.device_node)
+            return
+        self._on_udev_event(action, device)
+
     def _on_udev_event(self, action: str, device: pyudev.Device) -> None:
         dev_node = device.device_node
         if not dev_node or not dev_node.startswith("/dev/video"):
@@ -133,7 +141,7 @@ class Orchestrator:
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         monitor.filter_by(subsystem="video4linux")
-        observer = pyudev.MonitorObserver(monitor, callback=self._on_udev_event)
+        observer = pyudev.MonitorObserver(monitor, callback=self._dispatch_udev_event)
         observer.start()
         logger.info("Hotplug monitor active. Ctrl-C to stop.")
 
